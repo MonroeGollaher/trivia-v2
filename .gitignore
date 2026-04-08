@@ -1,0 +1,29 @@
+cat > .gitignore << 'EOF'
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# Node / React
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/*.tfvars
+infra/.terraform.lock.hcl
+
+# OS
+.DS_Store
+Thumbs.db
+EOF
