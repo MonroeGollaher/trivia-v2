@@ -1,0 +1,16 @@
+# docker-compose.yml
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trivia
+      POSTGRES_PASSWORD: trivia_dev_password
+      POSTGRES_DB: triviadb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
