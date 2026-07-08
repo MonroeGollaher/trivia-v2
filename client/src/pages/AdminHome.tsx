@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 
 interface Game {
@@ -10,6 +11,7 @@ interface Game {
 }
 
 export default function AdminHome() {
+  const navigate = useNavigate()
   const [games, setGames] = useState<Game[]>([])
   const [title, setTitle] = useState('')
   const [numberOfQuestions, setNumberOfQuestions] = useState(10)
@@ -91,12 +93,20 @@ export default function AdminHome() {
               <p className="font-semibold">{game.title}</p>
               <p className="text-sm text-gray-500">PIN: {game.roomPin} · {game.numberOfQuestions} questions</p>
             </div>
-            <button
-              onClick={() => deleteGame(game.id)}
-              className="text-red-500 hover:text-red-700 text-sm"
-            >
-              Delete
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate(`/host/${game.id}`)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                Launch
+              </button>
+              <button
+                onClick={() => deleteGame(game.id)}
+                className="text-red-500 hover:text-red-700 text-sm"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
         {games.length === 0 && (
