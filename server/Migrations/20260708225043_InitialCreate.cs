@@ -63,7 +63,7 @@ namespace TriviaGame.Api.Migrations
                     Category = table.Column<string>(type: "text", nullable: false),
                     Text = table.Column<string>(type: "text", nullable: false),
                     Answer = table.Column<string>(type: "text", nullable: false),
-                    WrongAnswers = table.Column<List<string>>(type: "jsonb", nullable: false),
+                    WrongAnswers = table.Column<List<string>>(type: "text[]", nullable: false),
                     GameId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

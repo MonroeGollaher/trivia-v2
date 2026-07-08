@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace TriviaGame.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260708161421_InitialCreate")]
+    [Migration("20260708225043_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -121,7 +121,7 @@ namespace TriviaGame.Api.Migrations
 
                     b.Property<List<string>>("WrongAnswers")
                         .IsRequired()
-                        .HasColumnType("jsonb");
+                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 

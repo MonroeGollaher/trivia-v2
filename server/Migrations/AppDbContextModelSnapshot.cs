@@ -118,7 +118,7 @@ namespace TriviaGame.Api.Migrations
 
                     b.Property<List<string>>("WrongAnswers")
                         .IsRequired()
-                        .HasColumnType("jsonb");
+                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 

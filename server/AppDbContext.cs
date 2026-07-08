@@ -35,6 +35,6 @@ public class AppDbContext : DbContext
 
         model.Entity<Question>()
             .Property(q => q.WrongAnswers)
-            .HasColumnType("jsonb");
+            .HasColumnType("text[]");
     }
 }
