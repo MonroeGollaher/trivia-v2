@@ -1,22 +1,46 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth0 } from '@auth0/auth0-react'
+import { setupAxiosInterceptor } from './services/api'
 
 function App() {
-  const [status, setStatus] = useState<string>('checking...')
+  const { isAuthenticated, isLoading, loginWithRedirect, getAccessTokenSilently } = useAuth0()
 
   useEffect(() => {
-    axios.get('/health')
-      .then(res => setStatus(res.data.status))
-      .catch(() => setStatus('unreachable'))
-  }, [])
+    if (isAuthenticated) {
+      setupAxiosInterceptor(() =>
+        getAccessTokenSilently({ authorizationParams: { audience: 'https://trivia-v2' } })
+      )
+    }
+  }, [isAuthenticated, getAccessTokenSilently])
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded shadow text-center">
+          <h1 className="text-2xl font-bold mb-4">Trivia v2</h1>
+          <button
+            onClick={() => loginWithRedirect()}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          >
+            Log In
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow text-center">
-        <h1 className="text-2xl font-bold mb-4">Trivia v2</h1>
-        <p className="text-gray-600">API status: <span className="font-mono font-semibold">{status}</span></p>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<div className="p-8">Home (coming soon)</div>} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
