@@ -14,6 +14,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -21,8 +22,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
-
-app.MapGet("/api/protected", (HttpContext ctx) => Results.Ok(new { message = "you are authorized" }))
-    .RequireAuthorization();
+app.MapControllers();
 
 app.Run();
