@@ -3,17 +3,26 @@ import * as signalR from '@microsoft/signalr'
 class SocketService {
   private connection: signalR.HubConnection | null = null
 
-  connect() {
+  async connect() {
+    if (this.connection?.state === signalR.HubConnectionState.Connected) return
+
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl('/hubs/game')
       .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
       .build()
 
-    return this.connection.start()
+    try {
+      await this.connection.start()
+      console.log('[SignalR] Connected')
+    } catch (err) {
+      console.error('[SignalR] Connection failed:', err)
+    }
   }
 
   disconnect() {
     this.connection?.stop()
+    this.connection = null
   }
 
   joinRoom(gameId: string) {
@@ -22,6 +31,10 @@ class SocketService {
 
   leaveRoom(gameId: string) {
     this.connection?.invoke('LeaveRoom', gameId)
+  }
+
+  nextQuestion(gameId: string, payload: unknown) {
+    this.connection?.invoke('NextQuestion', gameId, payload)
   }
 
   onNextQuestion(callback: (payload: unknown) => void) {

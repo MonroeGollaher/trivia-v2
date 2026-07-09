@@ -15,13 +15,17 @@ public class ProfilesController : ControllerBase
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? throw new UnauthorizedAccessException();
 
+    private static object ToDto(Profile p) => new {
+        p.Id, p.Email, p.Name, p.Picture, p.TeamName, p.CurrentGameId, p.CurrentPoints
+    };
+
     [HttpGet("me")]
     public async Task<IActionResult> GetMe()
     {
         var userId = GetUserId();
         var profile = await _db.Profiles.FindAsync(userId);
         if (profile == null) return NotFound();
-        return Ok(profile);
+        return Ok(ToDto(profile));
     }
 
     [HttpPost("me")]
@@ -40,7 +44,7 @@ public class ProfilesController : ControllerBase
             profile.Picture = dto.Picture;
         }
         await _db.SaveChangesAsync();
-        return Ok(profile);
+        return Ok(ToDto(profile));
     }
 
     [HttpGet("game/{gameId}")]
@@ -48,6 +52,7 @@ public class ProfilesController : ControllerBase
     {
         var players = await _db.Profiles
             .Where(p => p.CurrentGameId == gameId)
+            .Select(p => new { p.Id, p.Email, p.Name, p.Picture, p.TeamName, p.CurrentGameId, p.CurrentPoints })
             .ToListAsync();
         return Ok(players);
     }
@@ -56,7 +61,7 @@ public class ProfilesController : ControllerBase
     public async Task<IActionResult> JoinGame(string roomPin, [FromBody] JoinGameDto dto)
     {
         var userId = GetUserId();
-        var game = await _db.Games.FirstOrDefaultAsync(g => g.RoomPin == roomPin);
+        var game = await _db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.RoomPin == roomPin);
         if (game == null) return NotFound("Game not found");
 
         var profile = await _db.Profiles.FindAsync(userId);
@@ -65,7 +70,7 @@ public class ProfilesController : ControllerBase
         profile.CurrentGameId = game.Id;
         profile.TeamName = dto.TeamName;
         await _db.SaveChangesAsync();
-        return Ok(profile);
+        return Ok(ToDto(profile));
     }
 
     [HttpPut("leavegame")]
@@ -76,7 +81,7 @@ public class ProfilesController : ControllerBase
         if (profile == null) return NotFound();
         profile.CurrentGameId = null;
         await _db.SaveChangesAsync();
-        return Ok(profile);
+        return Ok(ToDto(profile));
     }
 }
 

@@ -4,6 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { setupAxiosInterceptor } from './services/api'
 import AdminHome from './pages/AdminHome'
 import HostGame from './pages/HostGame'
+import TeamGame from './pages/TeamGame'
 
 function App() {
   const { isAuthenticated, isLoading, loginWithRedirect, getAccessTokenSilently } = useAuth0()
@@ -26,7 +27,7 @@ function App() {
         <div className="bg-white p-8 rounded shadow text-center">
           <h1 className="text-2xl font-bold mb-4">Trivia v2</h1>
           <button
-            onClick={() => loginWithRedirect()}
+            onClick={() => loginWithRedirect({ appState: { returnTo: window.location.pathname } })}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
           >
             Log In
@@ -41,6 +42,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AdminHome />} />
         <Route path="/host/:gameId" element={<HostGame />} />
+        <Route path="/game/:gameId" element={<TeamGame />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

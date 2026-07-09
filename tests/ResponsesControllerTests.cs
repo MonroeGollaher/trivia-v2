@@ -1,0 +1,79 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+
+public class ResponsesControllerTests : IClassFixture<TestWebAppFactory>
+{
+    private readonly HttpClient _client;
+    private readonly TestWebAppFactory _factory;
+
+    public ResponsesControllerTests(TestWebAppFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+    }
+
+    private async Task<int> SeedQuestion()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (await db.Profiles.FindAsync(TestAuthHandler.UserId) == null)
+        {
+            db.Profiles.Add(new Profile { Id = TestAuthHandler.UserId, Email = "test@test.com", Name = "Test" });
+            await db.SaveChangesAsync();
+        }
+
+        var game = new Game { Title = "Test", NumberOfQuestions = 1, CreatorId = TestAuthHandler.UserId, RoomPin = Guid.NewGuid().ToString()[..6] };
+        var question = new Question { Text = "Q?", Answer = "A", Category = "Test", WrongAnswers = [] };
+        game.Questions.Add(question);
+        db.Games.Add(game);
+        await db.SaveChangesAsync();
+
+        return question.Id;
+    }
+
+    [Fact]
+    public async Task AddResponse_Returns200_WithFlatDto()
+    {
+        var questionId = await SeedQuestion();
+
+        var response = await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "my answer", wager = 5 });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.TryGetProperty("id", out _));
+        Assert.True(body.TryGetProperty("answer", out _));
+        Assert.False(body.TryGetProperty("question", out _), "Response DTO must not include 'question' navigation property");
+        Assert.False(body.TryGetProperty("team", out _), "Response DTO must not include 'team' navigation property");
+    }
+
+    [Fact]
+    public async Task AddResponse_Returns409_OnDuplicate()
+    {
+        var questionId = await SeedQuestion();
+
+        await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "first", wager = 1 });
+        var second = await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "second", wager = 1 });
+
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetByQuestion_Returns200_WithFlatDto()
+    {
+        var questionId = await SeedQuestion();
+        await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "test", wager = 2 });
+
+        var response = await _client.GetAsync($"/api/responses/{questionId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var first = body.EnumerateArray().First();
+        Assert.True(first.TryGetProperty("team", out _));
+        Assert.False(first.TryGetProperty("responses", out _), "Team DTO inside response must not include 'responses' navigation property");
+    }
+}

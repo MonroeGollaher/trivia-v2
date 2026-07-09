@@ -1,0 +1,10 @@
+#!/bin/sh
+ROOT="$(git rev-parse --show-toplevel)"
+
+echo "→ Type-checking frontend..."
+cd "$ROOT/client" && npx tsc --noEmit || exit 1
+
+echo "→ Building & testing backend..."
+cd "$ROOT/tests" && dotnet test -q || exit 1
+
+echo "✓ All checks passed"

@@ -15,13 +15,17 @@ public class GamesController : ControllerBase
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? throw new UnauthorizedAccessException();
 
+    private static object ToDto(Game g) => new {
+        g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt
+    };
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var userId = GetUserId();
         var games = await _db.Games
             .Where(g => g.CreatorId == userId)
-            .Include(g => g.Creator)
+            .Select(g => new { g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt })
             .ToListAsync();
         return Ok(games);
     }
@@ -29,11 +33,9 @@ public class GamesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOne(int id)
     {
-        var game = await _db.Games
-            .Include(g => g.Creator)
-            .FirstOrDefaultAsync(g => g.Id == id);
+        var game = await _db.Games.FindAsync(id);
         if (game == null) return NotFound();
-        return Ok(game);
+        return Ok(ToDto(game));
     }
 
     [HttpPost]
@@ -62,7 +64,7 @@ public class GamesController : ControllerBase
         };
         _db.Games.Add(game);
         await _db.SaveChangesAsync();
-        return Ok(game);
+        return Ok(ToDto(game));
     }
 
     [HttpDelete("{id}")]
@@ -73,7 +75,7 @@ public class GamesController : ControllerBase
         if (game == null) return NotFound();
         _db.Games.Remove(game);
         await _db.SaveChangesAsync();
-        return Ok(game);
+        return Ok(new { game.Id });
     }
 }
 
