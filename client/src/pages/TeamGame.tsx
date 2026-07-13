@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
+import axios from 'axios'
 import { api } from '../services/api'
 import { socketService } from '../services/SocketService'
 
@@ -33,6 +34,21 @@ export default function TeamGame() {
 
   const activeQuestion = questions[game?.activeQuestionIndex ?? 0]
 
+  const connectSocket = useCallback((gid: string) => {
+    socketService.connect().then(() => {
+      socketService.joinRoom(gid)
+      socketService.onNextQuestion((payload) => {
+        setGame(payload as Game)
+        setAnswer('')
+        setWager(1)
+        setSubmitted(false)
+      })
+      socketService.onEndGame(() => {
+        navigate(`/leaderboard/${gid}`)
+      })
+    })
+  }, [navigate])
+
   useEffect(() => {
     if (!gameId || !user) return
 
@@ -60,22 +76,14 @@ export default function TeamGame() {
         setStage('joining')
       }
     })
-  }, [gameId, user])
 
-  function connectSocket(gid: string) {
-    socketService.connect().then(() => {
-      socketService.joinRoom(gid)
-      socketService.onNextQuestion((payload: any) => {
-        setGame(payload)
-        setAnswer('')
-        setWager(1)
-        setSubmitted(false)
-      })
-      socketService.onEndGame(() => {
-        navigate(`/leaderboard/${gid}`)
-      })
-    })
-  }
+    return () => {
+      socketService.offNextQuestion()
+      socketService.offEndGame()
+      socketService.leaveRoom(gameId)
+      socketService.disconnect()
+    }
+  }, [gameId, user, connectSocket])
 
   async function joinGame(e: React.FormEvent) {
     e.preventDefault()
@@ -88,8 +96,14 @@ export default function TeamGame() {
   async function submitAnswer(e: React.FormEvent) {
     e.preventDefault()
     if (!activeQuestion) return
-    await api.post(`/api/responses/${activeQuestion.id}`, { answer, wager })
-    setSubmitted(true)
+    try {
+      await api.post(`/api/responses/${activeQuestion.id}`, { answer, wager })
+      setSubmitted(true)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setSubmitted(true)
+      }
+    }
   }
 
   if (stage === 'loading') {

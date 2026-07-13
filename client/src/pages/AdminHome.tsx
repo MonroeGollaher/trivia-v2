@@ -1,4 +1,11 @@
 import { useEffect, useState } from 'react'
+
+interface OpenTdbQuestion {
+  category: string
+  question: string
+  correct_answer: string
+  incorrect_answers: string[]
+}
 import { useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 import { api } from '../services/api'
@@ -39,7 +46,7 @@ export default function AdminHome() {
       )
       const triviaData = await triviaRes.json()
 
-      await api.post(`/api/questions/${game.id}`, triviaData.results.map((q: any) => ({
+      await api.post(`/api/questions/${game.id}`, triviaData.results.map((q: OpenTdbQuestion) => ({
         category: q.category,
         question: q.question,
         correctAnswer: q.correct_answer,
