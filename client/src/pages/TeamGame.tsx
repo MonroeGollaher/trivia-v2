@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 import { api } from '../services/api'
 import { socketService } from '../services/SocketService'
@@ -21,6 +21,7 @@ type Stage = 'loading' | 'joining' | 'playing'
 
 export default function TeamGame() {
   const { gameId } = useParams<{ gameId: string }>()
+  const navigate = useNavigate()
   const { user } = useAuth0()
   const [stage, setStage] = useState<Stage>('loading')
   const [game, setGame] = useState<Game | null>(null)
@@ -69,6 +70,9 @@ export default function TeamGame() {
         setAnswer('')
         setWager(1)
         setSubmitted(false)
+      })
+      socketService.onEndGame(() => {
+        navigate(`/leaderboard/${gid}`)
       })
     })
   }

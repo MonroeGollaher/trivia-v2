@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { socketService } from "../services/SocketService";
 
@@ -28,6 +28,7 @@ interface Game {
 
 export default function HostGame() {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const [game, setGame] = useState<Game | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
@@ -81,10 +82,16 @@ export default function HostGame() {
     socketService.nextQuestion(gameId!, res.data);
   }
 
+  async function endGame() {
+    await api.put(`/api/games/${gameId}/end`);
+    socketService.endGame(gameId!, {});
+    navigate(`/leaderboard/${gameId}`);
+  }
+
   async function toggleApproval(responseId: number) {
     const res = await api.put(`/api/responses/${responseId}/approval`);
     setResponses((prev) =>
-      prev.map((r) => (r.id === responseId ? res.data : r))
+      prev.map((r) => (r.id === responseId ? { ...r, approved: res.data.approved } : r))
     );
   }
 
@@ -155,13 +162,21 @@ export default function HostGame() {
         )}
       </div>
 
-      <button
-        onClick={nextQuestion}
-        disabled={isLastQuestion}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-      >
-        {isLastQuestion ? "Game Over" : "Next Question"}
-      </button>
+      {isLastQuestion ? (
+        <button
+          onClick={endGame}
+          className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+        >
+          End Game & See Results
+        </button>
+      ) : (
+        <button
+          onClick={nextQuestion}
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+        >
+          Next Question
+        </button>
+      )}
     </div>
   );
 }

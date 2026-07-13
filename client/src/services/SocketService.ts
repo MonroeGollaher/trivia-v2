@@ -37,6 +37,10 @@ class SocketService {
     this.connection?.invoke('NextQuestion', gameId, payload)
   }
 
+  endGame(gameId: string, payload: unknown) {
+    this.connection?.invoke('EndGame', gameId, payload)
+  }
+
   onNextQuestion(callback: (payload: unknown) => void) {
     this.connection?.on('nextQuestion', callback)
   }

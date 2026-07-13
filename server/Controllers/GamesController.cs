@@ -16,7 +16,7 @@ public class GamesController : ControllerBase
         ?? throw new UnauthorizedAccessException();
 
     private static object ToDto(Game g) => new {
-        g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt
+        g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt, g.IsEnded
     };
 
     [HttpGet]
@@ -25,7 +25,7 @@ public class GamesController : ControllerBase
         var userId = GetUserId();
         var games = await _db.Games
             .Where(g => g.CreatorId == userId)
-            .Select(g => new { g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt })
+            .Select(g => new { g.Id, g.Title, g.NumberOfQuestions, g.CreatorId, g.RoomPin, g.ActiveQuestionIndex, g.CreatedAt, g.IsEnded })
             .ToListAsync();
         return Ok(games);
     }
@@ -65,6 +65,44 @@ public class GamesController : ControllerBase
         _db.Games.Add(game);
         await _db.SaveChangesAsync();
         return Ok(ToDto(game));
+    }
+
+    [HttpPut("{id}/end")]
+    public async Task<IActionResult> EndGame(int id)
+    {
+        var userId = GetUserId();
+        var game = await _db.Games.FirstOrDefaultAsync(g => g.Id == id && g.CreatorId == userId);
+        if (game == null) return NotFound();
+        game.IsEnded = true;
+        await _db.SaveChangesAsync();
+        return Ok(ToDto(game));
+    }
+
+    [HttpGet("{id}/leaderboard")]
+    public async Task<IActionResult> GetLeaderboard(int id)
+    {
+        var questionIds = await _db.Questions
+            .Where(q => q.GameId == id)
+            .Select(q => q.Id)
+            .ToListAsync();
+
+        var players = await _db.Profiles
+            .Where(p => p.CurrentGameId == id)
+            .ToListAsync();
+
+        var approvedResponses = await _db.Responses
+            .Where(r => r.Approved && questionIds.Contains(r.QuestionId))
+            .ToListAsync();
+
+        var leaderboard = players
+            .Select(p => new {
+                TeamName = p.TeamName ?? p.Name,
+                TotalScore = approvedResponses.Where(r => r.TeamId == p.Id).Sum(r => r.Wager)
+            })
+            .OrderByDescending(e => e.TotalScore)
+            .ToList();
+
+        return Ok(leaderboard);
     }
 
     [HttpDelete("{id}")]

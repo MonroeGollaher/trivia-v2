@@ -5,6 +5,7 @@ import { setupAxiosInterceptor } from './services/api'
 import AdminHome from './pages/AdminHome'
 import HostGame from './pages/HostGame'
 import TeamGame from './pages/TeamGame'
+import Leaderboard from './pages/Leaderboard'
 
 function App() {
   const { isAuthenticated, isLoading, loginWithRedirect, getAccessTokenSilently } = useAuth0()
@@ -43,6 +44,7 @@ function App() {
         <Route path="/" element={<AdminHome />} />
         <Route path="/host/:gameId" element={<HostGame />} />
         <Route path="/game/:gameId" element={<TeamGame />} />
+        <Route path="/leaderboard/:gameId" element={<Leaderboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

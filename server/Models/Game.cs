@@ -7,6 +7,7 @@ public class Game
     public string RoomPin { get; set; } = "";
     public int ActiveQuestionIndex { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsEnded { get; set; } = false;
 
     public Profile Creator { get; set; } = null!;
     public List<Question> Questions { get; set; } = [];

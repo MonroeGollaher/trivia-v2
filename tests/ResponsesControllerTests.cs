@@ -76,4 +76,21 @@ public class ResponsesControllerTests : IClassFixture<TestWebAppFactory>
         Assert.True(first.TryGetProperty("team", out _));
         Assert.False(first.TryGetProperty("responses", out _), "Team DTO inside response must not include 'responses' navigation property");
     }
+
+    [Fact]
+    public async Task ToggleApproval_Returns200_WithApprovedToggled()
+    {
+        var questionId = await SeedQuestion();
+        var postRes = await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "toggle me", wager = 7 });
+        var postBody = await postRes.Content.ReadFromJsonAsync<JsonElement>();
+        var responseId = postBody.GetProperty("id").GetInt32();
+        var initialApproved = postBody.GetProperty("approved").GetBoolean();
+
+        var toggleRes = await _client.PutAsJsonAsync($"/api/responses/{responseId}/approval", new { });
+
+        Assert.Equal(HttpStatusCode.OK, toggleRes.StatusCode);
+        var toggleBody = await toggleRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(!initialApproved, toggleBody.GetProperty("approved").GetBoolean());
+        Assert.False(toggleBody.TryGetProperty("team", out _), "ToggleApproval must not include 'team' navigation property");
+    }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth0 } from '@auth0/auth0-react'
 import { api } from '../services/api'
 
 interface Game {
@@ -8,11 +9,17 @@ interface Game {
   roomPin: string
   numberOfQuestions: number
   createdAt: string
+  isEnded: boolean
 }
 
 export default function AdminHome() {
   const navigate = useNavigate()
+  const { logout } = useAuth0()
   const [games, setGames] = useState<Game[]>([])
+  const [showPast, setShowPast] = useState(false)
+
+  const activeGames = games.filter(g => !g.isEnded)
+  const pastGames = games.filter(g => g.isEnded)
   const [title, setTitle] = useState('')
   const [numberOfQuestions, setNumberOfQuestions] = useState(10)
   const [creating, setCreating] = useState(false)
@@ -54,7 +61,15 @@ export default function AdminHome() {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">My Games</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">My Games</h1>
+        <button
+          onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          Sign out
+        </button>
+      </div>
 
       <form onSubmit={createGame} className="bg-white rounded shadow p-6 mb-8 flex gap-4 items-end">
         <div className="flex-1">
@@ -87,7 +102,7 @@ export default function AdminHome() {
       </form>
 
       <div className="space-y-3">
-        {games.map(game => (
+        {activeGames.map(game => (
           <div key={game.id} className="bg-white rounded shadow p-4 flex items-center justify-between">
             <div>
               <p className="font-semibold">{game.title}</p>
@@ -109,10 +124,48 @@ export default function AdminHome() {
             </div>
           </div>
         ))}
-        {games.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No games yet. Create one above.</p>
+        {activeGames.length === 0 && (
+          <p className="text-gray-500 text-center py-8">No active games. Create one above.</p>
         )}
       </div>
+
+      {pastGames.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowPast(p => !p)}
+            className="text-sm text-gray-500 hover:text-gray-700 mb-3 flex items-center gap-1"
+          >
+            <span>{showPast ? '▾' : '▸'}</span>
+            Past Games ({pastGames.length})
+          </button>
+          {showPast && (
+            <div className="space-y-3">
+              {pastGames.map(game => (
+                <div key={game.id} className="bg-gray-50 rounded shadow p-4 flex items-center justify-between opacity-75">
+                  <div>
+                    <p className="font-semibold">{game.title}</p>
+                    <p className="text-sm text-gray-500">{game.numberOfQuestions} questions</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => navigate(`/leaderboard/${game.id}`)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Results
+                    </button>
+                    <button
+                      onClick={() => deleteGame(game.id)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
