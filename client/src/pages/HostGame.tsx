@@ -88,7 +88,9 @@ export default function HostGame() {
     navigate(`/leaderboard/${gameId}`);
   }
 
-  async function toggleApproval(responseId: number) {
+  async function setApproval(responseId: number, approve: boolean) {
+    const current = responses.find((r) => r.id === responseId);
+    if (!current || current.approved === approve) return;
     const res = await api.put(`/api/responses/${responseId}/approval`);
     setResponses((prev) =>
       prev.map((r) => (r.id === responseId ? { ...r, approved: res.data.approved } : r))
@@ -146,16 +148,28 @@ export default function HostGame() {
                   />
                   <p className="text-xs text-gray-400">Wager: {r.wager}</p>
                 </div>
-                <button
-                  onClick={() => toggleApproval(r.id)}
-                  className={`px-3 py-1 rounded text-sm font-medium ${
-                    r.approved
-                      ? "bg-green-100 text-green-700 hover:bg-green-200"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {r.approved ? "Approved" : "Approve"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setApproval(r.id, true)}
+                    className={`px-3 py-1 rounded text-sm font-medium ${
+                      r.approved
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500 hover:bg-green-50 hover:text-green-600"
+                    }`}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => setApproval(r.id, false)}
+                    className={`px-3 py-1 rounded text-sm font-medium ${
+                      !r.approved
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                    }`}
+                  >
+                    Deny
+                  </button>
+                </div>
               </div>
             ))}
           </div>
