@@ -61,7 +61,7 @@ export default function HostGame() {
 
     socketService.connect().then(() => {
       console.log('[Host] Joining room:', gameId);
-      socketService.joinRoom(gameId);
+      socketService.joinAsHost(gameId);
       socketService.onOrderRanking((payload) => {
         console.log('[Host] orderRanking received, questionId:', activeQuestionIdRef.current, payload);
         if (activeQuestionIdRef.current) loadResponses(activeQuestionIdRef.current);

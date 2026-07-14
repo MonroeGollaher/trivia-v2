@@ -93,4 +93,46 @@ public class ResponsesControllerTests : IClassFixture<TestWebAppFactory>
         Assert.Equal(!initialApproved, toggleBody.GetProperty("approved").GetBoolean());
         Assert.False(toggleBody.TryGetProperty("team", out _), "ToggleApproval must not include 'team' navigation property");
     }
+
+    [Fact]
+    public async Task GetResult_Returns200_WithCorrectAnswer_WhenDenied()
+    {
+        var questionId = await SeedQuestion(); // question Answer = "A"
+
+        var postRes = await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "Wrong answer", wager = 5 });
+        var responseId = (await postRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var result = await _client.GetAsync($"/api/responses/{responseId}/result");
+
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        var body = await result.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(body.GetProperty("approved").GetBoolean());
+        Assert.Equal("Wrong answer", body.GetProperty("answer").GetString());
+        Assert.Equal("A", body.GetProperty("correctAnswer").GetString());
+    }
+
+    [Fact]
+    public async Task GetResult_Returns200_WithCorrectAnswer_WhenApproved()
+    {
+        var questionId = await SeedQuestion(); // question Answer = "A"
+
+        var postRes = await _client.PostAsJsonAsync($"/api/responses/{questionId}", new { answer = "A", wager = 10 });
+        var responseId = (await postRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        await _client.PutAsJsonAsync($"/api/responses/{responseId}/approval", new { });
+
+        var result = await _client.GetAsync($"/api/responses/{responseId}/result");
+
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        var body = await result.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.GetProperty("approved").GetBoolean());
+        Assert.Equal(10, body.GetProperty("wager").GetInt32());
+        Assert.Equal("A", body.GetProperty("correctAnswer").GetString());
+    }
+
+    [Fact]
+    public async Task GetResult_Returns404_WhenResponseNotFound()
+    {
+        var result = await _client.GetAsync("/api/responses/999999/result");
+        Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
+    }
 }

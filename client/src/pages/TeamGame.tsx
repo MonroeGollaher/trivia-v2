@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 import axios from 'axios'
@@ -31,6 +31,8 @@ export default function TeamGame() {
   const [answer, setAnswer] = useState('')
   const [wager, setWager] = useState(1)
   const [submitted, setSubmitted] = useState(false)
+  const [result, setResult] = useState<{ approved: boolean; answer: string; wager: number; correctAnswer: string } | null>(null)
+  const lastResponseIdRef = useRef<number | null>(null)
 
   const activeQuestion = questions[game?.activeQuestionIndex ?? 0]
 
@@ -38,10 +40,22 @@ export default function TeamGame() {
     socketService.connect().then(() => {
       socketService.joinRoom(gid)
       socketService.onNextQuestion((payload) => {
-        setGame(payload as Game)
-        setAnswer('')
-        setWager(1)
-        setSubmitted(false)
+        void (async () => {
+          const responseId = lastResponseIdRef.current
+          lastResponseIdRef.current = null
+          if (responseId) {
+            try {
+              const res = await api.get(`/api/responses/${responseId}/result`)
+              setResult({ approved: res.data.approved, answer: res.data.answer, wager: res.data.wager, correctAnswer: res.data.correctAnswer })
+            } catch {
+              // result fetch failed — still advance to next question
+            }
+          }
+          setGame(payload as Game)
+          setAnswer('')
+          setWager(1)
+          setSubmitted(false)
+        })()
       })
       socketService.onEndGame(() => {
         navigate(`/leaderboard/${gid}`)
@@ -97,7 +111,8 @@ export default function TeamGame() {
     e.preventDefault()
     if (!activeQuestion) return
     try {
-      await api.post(`/api/responses/${activeQuestion.id}`, { answer, wager })
+      const res = await api.post(`/api/responses/${activeQuestion.id}`, { answer, wager })
+      lastResponseIdRef.current = res.data.id
       setSubmitted(true)
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -138,6 +153,33 @@ export default function TeamGame() {
 
   if (!activeQuestion) {
     return <div className="p-8 text-gray-500">Waiting for game to start...</div>
+  }
+
+  if (result) {
+    return (
+      <div className="max-w-lg mx-auto p-8 flex flex-col items-center justify-center min-h-screen">
+        <div className={`w-full rounded-xl shadow-lg p-10 text-center ${result.approved ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          <p className={`text-5xl mb-4 ${result.approved ? 'text-green-500' : 'text-red-400'}`}>
+            {result.approved ? '✓' : '✗'}
+          </p>
+          <h2 className={`text-2xl font-bold mb-2 ${result.approved ? 'text-green-700' : 'text-red-700'}`}>
+            {result.approved ? 'Approved!' : 'Not approved'}
+          </h2>
+          <p className="text-gray-500 mb-1">Your answer: <span className="font-medium text-gray-700" dangerouslySetInnerHTML={{ __html: result.answer }} /></p>
+          {result.approved ? (
+            <p className="text-green-600 font-semibold mt-2">+{result.wager} points</p>
+          ) : (
+            <p className="text-gray-500 mt-2">Correct answer: <span className="font-medium text-gray-700" dangerouslySetInnerHTML={{ __html: result.correctAnswer }} /></p>
+          )}
+          <button
+            onClick={() => setResult(null)}
+            className="mt-6 px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 text-sm"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

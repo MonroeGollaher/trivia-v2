@@ -57,9 +57,21 @@ public class ResponsesController : ControllerBase
 
         var question = await _db.Questions.FindAsync(questionId);
         if (question != null)
-            await _hub.Clients.Group(question.GameId.ToString()).SendAsync("orderRanking", result);
+            await _hub.Clients.Group($"{question.GameId}-host").SendAsync("orderRanking", result);
 
         return Ok(result);
+    }
+
+    [HttpGet("{id}/result")]
+    public async Task<IActionResult> GetResult(int id)
+    {
+        var response = await _db.Responses.FindAsync(id);
+        if (response == null) return NotFound();
+        var question = await _db.Questions.FindAsync(response.QuestionId);
+        return Ok(new {
+            response.Id, response.Answer, response.Wager, response.Approved,
+            CorrectAnswer = question?.Answer ?? ""
+        });
     }
 
     [HttpPut("{responseId}/approval")]

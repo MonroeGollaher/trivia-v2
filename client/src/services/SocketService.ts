@@ -29,6 +29,10 @@ class SocketService {
     this.connection?.invoke('JoinRoom', gameId)
   }
 
+  joinAsHost(gameId: string) {
+    this.connection?.invoke('JoinAsHost', gameId)
+  }
+
   leaveRoom(gameId: string) {
     this.connection?.invoke('LeaveRoom', gameId)
   }
